@@ -1,0 +1,21 @@
+{
+	"name": "My Recorer",
+	"version": "1.0",
+	"manifest_version": 2,
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": true
+	},
+	"browser_action": {
+		"default_popup": "popup.html"
+	},
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"js": ["content-script.js"],
+			"all_frames": false,
+			"run_at": "document_end"
+		}
+	],
+	"permissions": ["activeTab", "declarativeContent", "storage", "tabs", "desktopCapture", "alarms", "activeTab"]
+}
