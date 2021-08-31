@@ -1,54 +1,70 @@
 var contentTabId;
-var shouldStop = false;
+let recorder = null;
 chrome.runtime.onMessage.addListener(gotMessage);
 
 function gotMessage(message) {
 	console.log(message);
+	if (message.from === 'stop') {
+		recorder.stop();
+	}
 	if (message.from === 'start') {
-		chrome.desktopCapture.chooseDesktopMedia(['tab', 'audio'], null, function (streamId, options) {
+		chrome.desktopCapture.chooseDesktopMedia(['tab', 'audio'], function (id) {
 			navigator.webkitGetUserMedia(
 				{
 					audio: {
 						mandatory: {
 							chromeMediaSource: 'desktop',
-							chromeMediaSourceId: streamId,
+							chromeMediaSourceId: id,
 							echoCancellation: true,
 						},
 					},
 					video: {
 						mandatory: {
 							chromeMediaSource: 'desktop',
-							chromeMediaSourceId: streamId,
-							maxWidth: window.screen.width,
-							maxHeight: window.screen.height,
-							maxFrameRate: 30,
+							chromeMediaSourceId: id,
 						},
 					},
 				},
-				function (e) {
-					console.log(e);
-					let recordedChunks = [];
-					var mediaRecorder = new MediaRecorder(e);
-
-					mediaRecorder.ondataavailable = function (e) {
-						if (e.data.size > 0) {
-							recordedChunks.push(e.data);
-						}
-
-						if (shouldStop === true) {
-							mediaRecorder.stop();
-							mediaRecorder.state = 'inactive';
-						}
-					};
-
-					mediaRecorder.start(200);
-				},
-				function (e) {
-					console.log(e);
+				gotStream,
+				(error) => {
+					console.log(error);
 				}
 			);
 		});
-	} else if (message.from === 'stop') {
-		shouldStop = true;
 	}
 }
+
+function gotStream(stream) {
+	var chunks = [];
+	recorder = new MediaRecorder(stream, {
+		videoBitsPerSecond: 2500000,
+		ignoreMutedMedia: true,
+		mimeType: 'video/webm',
+	});
+	recorder.ondataavailable = function (event) {
+		if (event.data.size > 0) {
+			chunks.push(event.data);
+		}
+	};
+
+	recorder.onstop = function () {
+		var superBuffer = new Blob(chunks, {
+			type: 'video/webm',
+		});
+
+		var url = URL.createObjectURL(superBuffer);
+		chrome.downloads.download(
+			{
+				url: url,
+				filename: 'filename.webm',
+			},
+			() => {}
+		);
+		console.log(url);
+	};
+	recorder.start();
+}
+
+chrome.downloads.onChanged.addListener(function (e) {
+	console.log(e);
+});

@@ -17,5 +17,5 @@
 			"run_at": "document_end"
 		}
 	],
-	"permissions": ["activeTab", "declarativeContent", "storage", "tabs", "desktopCapture", "alarms", "activeTab"]
+	"permissions": ["activeTab", "declarativeContent", "storage", "tabs", "desktopCapture", "alarms", "activeTab", "downloads"]
 }
