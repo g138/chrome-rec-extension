@@ -4,11 +4,25 @@ chrome.runtime.onMessage.addListener(gotMessage);
 
 function gotMessage(message) {
 	console.log(message);
+	if (message.from === 'con-stop') {
+		var url = message.audioBlob;
+		chrome.downloads.download(
+			{
+				url: url,
+				filename: 'filename.webm',
+			},
+			() => {}
+		);
+	}
 	if (message.from === 'stop') {
 		recorder.stop();
+		chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+			console.log(tabs);
+			chrome.tabs.sendMessage(tabs[0].id, { action: 'stop' });
+		});
 	}
 	if (message.from === 'start') {
-		chrome.desktopCapture.chooseDesktopMedia(['tab', 'audio'], function (id) {
+		chrome.desktopCapture.chooseDesktopMedia(['tab'], function (id) {
 			navigator.webkitGetUserMedia(
 				{
 					audio: {
@@ -60,9 +74,11 @@ function gotStream(stream) {
 			},
 			() => {}
 		);
-		console.log(url);
 	};
 	recorder.start();
+	chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+		chrome.tabs.sendMessage(tabs[0].id, { action: 'start' });
+	});
 }
 
 chrome.downloads.onChanged.addListener(function (e) {
